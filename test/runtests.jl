@@ -23,12 +23,34 @@ using Test
     end
 
     @testset "Kinetic Energy" begin
-        # Standard calculation: E_k = 0.5 * m * v^2
         @test kinetic_energy(2.0, 3.0) ≈ 9.0
         @test kinetic_energy(10.0, 0.0) ≈ 0.0
         
         # Exception handling: negative mass
         @test_throws DomainError kinetic_energy(-5, 2)
+    end
+
+    @testset "Time to Reach Distance" begin
+        # Immediate case
+        @test time_to_reach_distance(0.0, 5.0, 2.0) ≈ 0.0
+        
+        # Constant velocity
+        @test time_to_reach_distance(100.0, 10.0, 0.0) ≈ 10.0
+        
+        # Constant acceleration from rest
+        @test time_to_reach_distance(10.0, 0.0, 2.0) ≈ sqrt(10.0)
+        
+        # Deceleration (two positive roots, should return the first one)
+        @test time_to_reach_distance(2.0, 3.0, -2.0) ≈ 1.0
+        
+        # Unreachable cases (discriminant < 0)
+        @test_throws DomainError time_to_reach_distance(10.0, 2.0, -2.0)
+        
+        # Unreachable cases (zero velocity and acceleration)
+        @test_throws DomainError time_to_reach_distance(10.0, 0.0, 0.0)
+        
+        # Unreachable cases (negative time required)
+        @test_throws DomainError time_to_reach_distance(10.0, -5.0, 0.0)
     end
 
 end
