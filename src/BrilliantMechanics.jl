@@ -234,24 +234,20 @@ function required_launch_speed(a::Real, y0::Real, yf::Real, xf::Real, theta::Rea
 end
 
 """
-    minimum_valid_angle(a::Real, v0::Real, y0::Real, yf::Real, xf::Real, theta_min::Real)
+    minimum_valid_angle(a::Real, v0::Real, y0::Real, yf::Real, theta_min::Real)
 
 Calculate the minimum launch angle ``\\theta \\geq \\theta_{\\min}`` required for a projectile 
-with initial speed ``v_0`` launched from ``(0, y_0)`` to hit a target landing coordinate ``(x_f, y_f)`` 
-under gravitational acceleration, satisfying the minimum angle constraint:
+with initial speed ``v_0`` launched from ``y_0`` to physically be able to reach a target height ``y_f``:
 
-This is solved by finding the roots of the quadratic trajectory equation:
+``\\sin(\\theta) \\geq \\frac{\\sqrt{2 g (y_f - y_0)}}{v_0}``
 
-``\\frac{g x_f^2}{2 v_0^2} \\tan^2(\\theta) - x_f \\tan(\\theta) + \\left( y_f - y_0 + \\frac{g x_f^2}{2 v_0^2} \\right) = 0``
-
-And then selecting the smallest valid angle ``\\theta \\geq \\theta_{\\min}`` of the two trajectory solutions (high-ball and low-ball).
+Where ``g = |a|`` is the magnitude of the gravitational acceleration.
 
 # Arguments
 * `a::Real`: The gravitational acceleration in meters per second squared (m/s²). The magnitude ``|a|`` is used.
-* `v0::Real`: The initial launch speed in meters per second (m/s). Must be positive.
+* `v0::Real`: The initial launch speed in meters per second (m/s).
 * `y0::Real`: The initial vertical position (height) in meters (m).
-* `yf::Real`: The target landing vertical position (height) in meters (m).
-* `xf::Real`: The target horizontal distance in meters (m). Must be non-zero.
+* `yf::Real`: The target vertical position (height) in meters (m).
 * `theta_min::Real`: The minimum launch angle constraint in radians (rad).
 
 # Returns
@@ -259,57 +255,42 @@ And then selecting the smallest valid angle ``\\theta \\geq \\theta_{\\min}`` of
 
 # Errors
 * `DomainError`: If gravity ``a`` is zero.
-* `DomainError`: If speed ``v_0`` is non-positive.
-* `DomainError`: If target horizontal distance ``x_f`` is zero.
-* `DomainError`: If the target coordinate ``(x_f, y_f)`` is physically unreachable with speed ``v_0`` (i.e. outside the parabola of safety).
-* `DomainError`: If the minimum angle constraint ``\\theta_{\\min}`` is greater than both physically valid launch angles.
+* `DomainError`: If initial speed ``v_0`` is non-positive when trying to reach a higher target height.
+* `DomainError`: If the target height ``y_f`` is physically unreachable even with a straight vertical shot (i.e. ``v_0`` is too small).
+* `DomainError`: If the minimum angle constraint ``\\theta_{\\min}`` is greater than the maximum physically valid angle (i.e. no angle ``\\geq \\theta_{\\min}`` can reach the height).
 """
-function minimum_valid_angle(a::Real, v0::Real, y0::Real, yf::Real, xf::Real, theta_min::Real)
+function minimum_valid_angle(a::Real, v0::Real, y0::Real, yf::Real, theta_min::Real)
     g = abs(a)
     if g == 0
         throw(DomainError(a, "Gravitational acceleration magnitude must be greater than zero."))
     end
+    
+    # If target height is below or at the initial height, any angle can physically reach it eventually
+    if yf <= y0
+        return Float64(theta_min)
+    end
+    
     if v0 <= 0
-        throw(DomainError(v0, "Initial speed v0 must be positive."))
-    end
-    if xf == 0
-        throw(DomainError(xf, "Target horizontal distance xf must be non-zero."))
+        throw(DomainError(v0, "Initial speed v0 must be positive to reach a higher target height."))
     end
     
-    # Quadratic coefficients for tan(theta): A * z^2 + B * z + C = 0
-    A = (g * xf^2) / (2 * v0^2)
-    B = -xf
-    C = yf - y0 + A
-    
-    discriminant = B^2 - 4 * A * C
-    if discriminant < 0
-        throw(DomainError(discriminant, "Target is physically unreachable: the initial speed v0 is too small to reach (xf, yf)."))
+    # Calculate the ratio for the minimum sine value
+    ratio = sqrt(2 * g * (yf - y0)) / v0
+    if ratio > 1.0
+        throw(DomainError(ratio, "Target height is physically unreachable: initial speed v0 is too small to reach yf even with a straight vertical shot."))
     end
     
-    sqrt_D = sqrt(discriminant)
-    z1 = (-B + sqrt_D) / (2 * A)
-    z2 = (-B - sqrt_D) / (2 * A)
+    # Minimum required angle in the first quadrant
+    theta_req = asin(ratio)
     
-    # Convert tan(theta) roots to angles. 
-    # Since the projectile must travel toward xf, the direction of cos(theta) must match the sign of xf.
-    if xf > 0
-        theta_a = atan(z1)
-        theta_b = atan(z2)
+    # The valid range of launch angles is [theta_req, pi - theta_req]
+    # We want to find the smallest angle theta >= theta_min in this range
+    if theta_min <= theta_req
+        return Float64(theta_req)
+    elseif theta_min <= pi - theta_req
+        return Float64(theta_min)
     else
-        theta_a = atan(z1) + pi
-        theta_b = atan(z2) + pi
-    end
-    
-    # Sort the two launch angles (low-ball and high-ball)
-    theta_low = min(theta_a, theta_b)
-    theta_high = max(theta_a, theta_b)
-    
-    if theta_min <= theta_low
-        return Float64(theta_low)
-    elseif theta_min <= theta_high
-        return Float64(theta_high)
-    else
-        throw(DomainError(theta_min, "The minimum angle constraint theta_min is too large: no valid trajectory angle >= theta_min can hit the target (xf, yf)."))
+        throw(DomainError(theta_min, "The minimum angle constraint theta_min is too large: no angle >= theta_min can reach the target height yf."))
     end
 end
 
