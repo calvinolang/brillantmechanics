@@ -113,30 +113,43 @@ using Test
     end
 
     @testset "Minimum Valid Angle" begin
-        # Target height at or below initial height -> any angle works -> returns theta_min
-        @test minimum_valid_angle(10.0, 20.0, 10.0, 5.0, 0.2) ≈ 0.2
+        # Flat ground: v0 = sqrt(98.1), xf = 10.0, yf = 0.0 under g = 9.81
+        # The only valid angle is pi/4. 
+        # theta_min = pi/6 <= pi/4 -> returns pi/4
+        @test minimum_valid_angle(9.81, sqrt(98.1), 0.0, 0.0, 10.0, pi/6) ≈ pi/4
         
-        # Standard launch (C = 1/sqrt(2), theta_req = pi/4)
-        # theta_min <= theta_req -> returns theta_req
-        @test minimum_valid_angle(10.0, 20.0, 10.0, 20.0, pi/6) ≈ pi/4
+        # Cliff firing: g = 10.0, v0 = 10*sqrt(2), y0 = 10.0, yf = 0.0, xf = 20.0
+        # Valid angles: theta_low = 0.0, theta_high = atan(2) approx 1.1071
+        # theta_min = -0.5 <= 0.0 -> returns theta_low = 0.0
+        @test minimum_valid_angle(10.0, 10.0*sqrt(2.0), 10.0, 0.0, 20.0, -0.5) ≈ 0.0
         
-        # theta_req < theta_min <= pi - theta_req -> returns theta_min
-        @test minimum_valid_angle(10.0, 20.0, 10.0, 20.0, pi/3) ≈ pi/3
+        # theta_min = 0.5 (between 0.0 and 1.1071) -> returns theta_high = atan(2.0)
+        @test minimum_valid_angle(10.0, 10.0*sqrt(2.0), 10.0, 0.0, 20.0, 0.5) ≈ atan(2.0)
         
         # Negative gravity magnitude handling
-        @test minimum_valid_angle(-10.0, 20.0, 10.0, 20.0, pi/6) ≈ pi/4
+        @test minimum_valid_angle(-10.0, 10.0*sqrt(2.0), 10.0, 0.0, 20.0, -0.5) ≈ 0.0
         
-        # Domain error: target peak height physically unreachable even vertically
-        @test_throws DomainError minimum_valid_angle(10.0, 10.0, 0.0, 100.0, pi/6)
+        # Fired backward (xf = -20.0): Valid angles are atan(-2) + pi (approx 2.0344) and pi (approx 3.14159)
+        # theta_min = 1.5 -> returns atan(-2.0) + pi
+        @test minimum_valid_angle(10.0, 10.0*sqrt(2.0), 10.0, 0.0, -20.0, 1.5) ≈ atan(-2.0) + pi
         
-        # Domain error: speed <= 0 when target is above start
-        @test_throws DomainError minimum_valid_angle(9.8, 0.0, 0.0, 10.0, pi/4)
+        # theta_min = 2.5 -> returns pi
+        @test minimum_valid_angle(10.0, 10.0*sqrt(2.0), 10.0, 0.0, -20.0, 2.5) ≈ pi
+        
+        # Domain error: target physically unreachable with speed v0
+        @test_throws DomainError minimum_valid_angle(9.81, 1.0, 0.0, 100.0, 100.0, pi/6)
+        
+        # Domain error: speed <= 0
+        @test_throws DomainError minimum_valid_angle(9.8, 0.0, 0.0, 10.0, 10.0, pi/4)
         
         # Domain error: zero gravity
-        @test_throws DomainError minimum_valid_angle(0.0, 20.0, 0.0, 10.0, pi/4)
+        @test_throws DomainError minimum_valid_angle(0.0, 20.0, 0.0, 10.0, 10.0, pi/4)
+        
+        # Domain error: zero horizontal distance
+        @test_throws DomainError minimum_valid_angle(9.8, 20.0, 0.0, 10.0, 0.0, pi/4)
         
         # Domain error: theta_min constraint too large
-        @test_throws DomainError minimum_valid_angle(10.0, 20.0, 10.0, 20.0, 5*pi/6)
+        @test_throws DomainError minimum_valid_angle(10.0, 10.0*sqrt(2.0), 10.0, 0.0, 20.0, 1.5)
     end
 
 end
