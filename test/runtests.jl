@@ -84,27 +84,32 @@ using Test
     end
 
     @testset "Required Launch Speed" begin
-        # Standard launch at 30 degrees (pi/6) from 10m to 20m peak
-        @test required_launch_speed(10.0, 10.0, 20.0, pi/6) ≈ 20.0 * sqrt(2.0)
+        # Flat ground: v0 = sqrt(g * xf / sin(2*theta))
+        # g = 9.81, xf = 10.0, theta = pi/4 (45 deg) -> v0 = sqrt(98.1)
+        @test required_launch_speed(9.81, 0.0, 0.0, 10.0, pi/4) ≈ sqrt(98.1)
         
-        # Vertical launch (90 degrees, pi/2) from 0m to 10m peak
-        @test required_launch_speed(9.81, 0.0, 10.0, pi/2) ≈ sqrt(2.0 * 9.81 * 10.0)
-        
-        # Already at target height
-        @test required_launch_speed(9.81, 10.0, 10.0, pi/4) ≈ 0.0
+        # Horizontal firing from cliff (theta = 0): v0 = xf * sqrt(g / (2 * y0))
+        # g = 10.0, y0 = 10.0, yf = 0.0, xf = 20.0, theta = 0.0 -> v0 = 20.0 * sqrt(10.0 / 20.0) = 10 * sqrt(2)
+        @test required_launch_speed(10.0, 10.0, 0.0, 20.0, 0.0) ≈ 10.0 * sqrt(2.0)
         
         # Negative gravity magnitude handling
-        @test required_launch_speed(-10.0, 10.0, 20.0, pi/6) ≈ 20.0 * sqrt(2.0)
+        @test required_launch_speed(-10.0, 10.0, 0.0, 20.0, 0.0) ≈ 10.0 * sqrt(2.0)
         
-        # Domain errors: target below initial height
-        @test_throws DomainError required_launch_speed(9.8, 10.0, 5.0, pi/4)
+        # Fired backward (xf = -20, theta = pi) -> cos(pi) = -1, tan(pi) = 0
+        @test required_launch_speed(10.0, 10.0, 0.0, -20.0, pi) ≈ 10.0 * sqrt(2.0)
         
-        # Domain errors: zero gravity
-        @test_throws DomainError required_launch_speed(0.0, 0.0, 10.0, pi/4)
+        # Domain error: vertical launch angle (cos(theta) = 0)
+        @test_throws DomainError required_launch_speed(9.8, 0.0, 10.0, 10.0, pi/2)
         
-        # Domain errors: non-upward launch angle
-        @test_throws DomainError required_launch_speed(9.8, 0.0, 10.0, 0.0)      # horizontal
-        @test_throws DomainError required_launch_speed(9.8, 0.0, 10.0, -pi/6)   # downward
+        # Domain error: zero gravity
+        @test_throws DomainError required_launch_speed(0.0, 0.0, 0.0, 10.0, pi/4)
+        
+        # Domain error: zero horizontal distance
+        @test_throws DomainError required_launch_speed(9.8, 0.0, 0.0, 0.0, pi/4)
+        
+        # Domain error: physically unreachable (straight line points below landing height)
+        # y0 = 0.0, yf = 10.0, xf = 20.0, theta = -pi/4 (tan(theta) = -1) -> denom = 0 - 10 - 20 = -30 <= 0
+        @test_throws DomainError required_launch_speed(9.8, 0.0, 10.0, 20.0, -pi/4)
     end
 
 end
