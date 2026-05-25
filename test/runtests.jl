@@ -59,4 +59,28 @@ using Test
         @test time_to_reach_distance(0.0, 5.0, 2.0) ≈ 0.0
     end
 
+    @testset "Projectile Range" begin
+        # Standard launch at 45 degrees (pi/4) - yields maximum range
+        @test projectile_range(10.0, 10.0, pi/4) ≈ 10.0
+        
+        # Test unit-agnostic / negative gravity magnitude handling
+        @test projectile_range(-9.8, 10.0, pi/4) ≈ (100.0 / 9.8)
+        
+        # Angle of 0 (fired horizontally along the ground)
+        @test projectile_range(9.8, 15.0, 0.0) ≈ 0.0
+        
+        # Fired downward (theta < 0)
+        @test projectile_range(9.8, 15.0, -0.5) ≈ 0.0
+        
+        # Fired straight up (theta = pi/2) - range should be 0 (re-lands at same spot)
+        @test projectile_range(9.8, 15.0, pi/2) ≈ 0.0 atol=1e-12
+        
+        # Zero speed
+        @test projectile_range(9.8, 0.0, pi/4) ≈ 0.0
+        
+        # Domain errors
+        @test_throws DomainError projectile_range(0.0, 10.0, pi/4)  # Zero gravity
+        @test_throws DomainError projectile_range(9.8, -5.0, pi/4)  # Negative speed
+    end
+
 end

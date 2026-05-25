@@ -1,6 +1,6 @@
 module BrilliantMechanics
 
-export gravitational_force, kinetic_energy, time_to_reach_distance
+export gravitational_force, kinetic_energy, time_to_reach_distance, projectile_range
 
 # --- Constants ---
 
@@ -141,6 +141,45 @@ function time_to_reach_distance(d::Real, v0::Real, a::Real)
     end
     
     return minimum(roots)
+end
+
+"""
+    projectile_range(a::Real, v0::Real, theta::Real)
+
+Calculate the horizontal distance (range) traveled by a projectile launched from ground level 
+before hitting the ground, assuming no air resistance:
+
+``R = \\frac{v_0^2 \\sin(2\\theta)}{g}``
+
+Where ``g = |a|`` is the magnitude of the gravitational acceleration.
+
+# Arguments
+* `a::Real`: The gravitational acceleration in meters per second squared (m/s²). The magnitude ``|a|`` is used.
+* `v0::Real`: The initial launch speed in meters per second (m/s).
+* `theta::Real`: The launch angle relative to the horizontal, in radians (rad).
+
+# Returns
+* The horizontal distance (range) traveled in meters (m). If the projectile is launched downward (``\\theta \\leq 0``) or speed is zero, the range is ``0.0``.
+
+# Errors
+* `DomainError`: If the acceleration ``a`` is zero (since gravity is required for the projectile to return to the ground).
+"""
+function projectile_range(a::Real, v0::Real, theta::Real)
+    g = abs(a)
+    if g == 0
+        throw(DomainError(a, "Gravitational acceleration magnitude must be greater than zero."))
+    end
+    if v0 < 0
+        throw(DomainError(v0, "Initial speed v0 must be non-negative."))
+    end
+    
+    # If launch angle points downwards or initial speed is 0, it hits the ground immediately.
+    if sin(theta) <= 0 || v0 == 0
+        return 0.0
+    end
+    
+    # Range formula: R = (v0^2 * sin(2*theta)) / g
+    return Float64((v0^2 * sin(2 * theta)) / g)
 end
 
 end # module BrilliantMechanics
