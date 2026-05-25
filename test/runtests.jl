@@ -83,4 +83,28 @@ using Test
         @test_throws DomainError projectile_range(9.8, -5.0, pi/4)  # Negative speed
     end
 
+    @testset "Required Launch Speed" begin
+        # Standard launch at 30 degrees (pi/6) from 10m to 20m peak
+        @test required_launch_speed(10.0, 10.0, 20.0, pi/6) ≈ 20.0 * sqrt(2.0)
+        
+        # Vertical launch (90 degrees, pi/2) from 0m to 10m peak
+        @test required_launch_speed(9.81, 0.0, 10.0, pi/2) ≈ sqrt(2.0 * 9.81 * 10.0)
+        
+        # Already at target height
+        @test required_launch_speed(9.81, 10.0, 10.0, pi/4) ≈ 0.0
+        
+        # Negative gravity magnitude handling
+        @test required_launch_speed(-10.0, 10.0, 20.0, pi/6) ≈ 20.0 * sqrt(2.0)
+        
+        # Domain errors: target below initial height
+        @test_throws DomainError required_launch_speed(9.8, 10.0, 5.0, pi/4)
+        
+        # Domain errors: zero gravity
+        @test_throws DomainError required_launch_speed(0.0, 0.0, 10.0, pi/4)
+        
+        # Domain errors: non-upward launch angle
+        @test_throws DomainError required_launch_speed(9.8, 0.0, 10.0, 0.0)      # horizontal
+        @test_throws DomainError required_launch_speed(9.8, 0.0, 10.0, -pi/6)   # downward
+    end
+
 end

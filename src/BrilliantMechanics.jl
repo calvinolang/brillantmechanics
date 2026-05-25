@@ -1,6 +1,6 @@
 module BrilliantMechanics
 
-export gravitational_force, kinetic_energy, time_to_reach_distance, projectile_range
+export gravitational_force, kinetic_energy, time_to_reach_distance, projectile_range, required_launch_speed
 
 # --- Constants ---
 
@@ -180,6 +180,52 @@ function projectile_range(a::Real, v0::Real, theta::Real)
     
     # Range formula: R = (v0^2 * sin(2*theta)) / g
     return Float64((v0^2 * sin(2 * theta)) / g)
+end
+
+"""
+    required_launch_speed(a::Real, y0::Real, yf::Real, theta::Real)
+
+Calculate the minimum initial launch speed ``v_0`` required for a projectile to reach a target peak height 
+``y_f`` when launched from an initial height ``y_0`` at an angle ``\\theta`` relative to the horizontal:
+
+``v_0 = \\frac{\\sqrt{2 g (y_f - y_0)}}{\\sin(\\theta)}``
+
+Where ``g = |a|`` is the magnitude of the gravitational acceleration.
+
+# Arguments
+* `a::Real`: The gravitational acceleration in meters per second squared (m/s²). The magnitude ``|a|`` is used.
+* `y0::Real`: The initial vertical position (height) in meters (m).
+* `yf::Real`: The final target peak vertical position (height) in meters (m).
+* `theta::Real`: The launch angle relative to the horizontal, in radians (rad).
+
+# Returns
+* The required initial launch speed ``v_0`` in meters per second (m/s).
+
+# Errors
+* `DomainError`: If the target peak height ``y_f`` is less than the initial height ``y_0``.
+* `DomainError`: If gravity ``a`` is zero.
+* `DomainError`: If the launch angle ``\\theta`` does not point upwards (i.e. ``\\sin(\\theta) \\leq 0``), which makes reaching a higher height impossible.
+"""
+function required_launch_speed(a::Real, y0::Real, yf::Real, theta::Real)
+    g = abs(a)
+    if g == 0
+        throw(DomainError(a, "Gravitational acceleration magnitude must be greater than zero."))
+    end
+    if yf < y0
+        throw(DomainError((y0, yf), "Target height yf must be greater than or equal to initial height y0."))
+    end
+    
+    # If already at the target height, no speed is needed
+    if yf == y0
+        return 0.0
+    end
+    
+    sin_theta = sin(theta)
+    if sin_theta <= 0
+        throw(DomainError(theta, "Launch angle theta must have a positive upward component (sin(theta) > 0) to reach a higher target height."))
+    end
+    
+    return Float64(sqrt(2 * g * (yf - y0)) / sin_theta)
 end
 
 end # module BrilliantMechanics
