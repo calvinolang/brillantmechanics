@@ -31,8 +31,12 @@ using Test
     end
 
     @testset "Time to Reach Distance" begin
-        # Immediate case
-        @test time_to_reach_distance(0.0, 5.0, 2.0) ≈ 0.0
+        # Stationary start case
+        @test time_to_reach_distance(0.0, 0.0, 0.0) ≈ 0.0
+        
+        # Arrow shot up, coming back to earth (returning to d=0 under gravity)
+        # v0 = 10.0 m/s, a = -9.8 m/s^2, should return 2 * v0 / |a|
+        @test time_to_reach_distance(0.0, 10.0, -9.8) ≈ (2 * 10.0 / 9.8)
         
         # Constant velocity
         @test time_to_reach_distance(100.0, 10.0, 0.0) ≈ 10.0
@@ -46,11 +50,13 @@ using Test
         # Unreachable cases (discriminant < 0)
         @test_throws DomainError time_to_reach_distance(10.0, 2.0, -2.0)
         
-        # Unreachable cases (zero velocity and acceleration)
+        # Unreachable cases (zero velocity and acceleration, non-zero distance)
         @test_throws DomainError time_to_reach_distance(10.0, 0.0, 0.0)
         
         # Unreachable cases (negative time required)
         @test_throws DomainError time_to_reach_distance(10.0, -5.0, 0.0)
+        # Fallback return case (object starts at 0 and accelerates away, never returning in future, so fallback is 0.0)
+        @test time_to_reach_distance(0.0, 5.0, 2.0) ≈ 0.0
     end
 
 end

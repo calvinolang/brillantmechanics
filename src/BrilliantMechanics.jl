@@ -72,14 +72,14 @@ end
 """
     time_to_reach_distance(d::Real, v0::Real, a::Real)
 
-Calculate the first non-negative time ``t`` at which an object under constant acceleration ``a`` 
+Calculate the first positive time ``t > 0`` (or non-negative time if stationary) at which an object under constant acceleration ``a`` 
 and initial velocity ``v_0`` reaches a given distance (displacement) ``d``:
 
 ``d = v_0 t + \\frac{1}{2} a t^2``
 
-This is solved by finding the smallest non-negative root of the quadratic equation:
-
-``\\frac{1}{2} a t^2 + v_0 t - d = 0``
+This solves the quadratic kinematics equation by finding the smallest positive real root. 
+If the target is the starting point (``d = 0``) and the object is moving or accelerating, 
+it calculates the time the object takes to return to the starting point.
 
 # Arguments
 * `d::Real`: The target distance (displacement) in meters (m).
@@ -87,13 +87,14 @@ This is solved by finding the smallest non-negative root of the quadratic equati
 * `a::Real`: The constant acceleration in meters per second squared (m/s²).
 
 # Returns
-* The first non-negative time ``t \\geq 0`` in seconds (s) to reach the distance.
+* The first positive time ``t > 0`` (or ``0.0`` if remaining stationary) in seconds (s).
 
 # Errors
 * `DomainError`: If the target distance is unreachable, or if both roots are negative (meaning the target was only reached in the past).
 """
 function time_to_reach_distance(d::Real, v0::Real, a::Real)
-    if d == 0
+    # If already at the target and not moving/accelerating, time is 0
+    if d == 0 && v0 == 0 && a == 0
         return 0.0
     end
     
@@ -102,8 +103,9 @@ function time_to_reach_distance(d::Real, v0::Real, a::Real)
             throw(DomainError((d, v0, a), "Target distance is unreachable because velocity and acceleration are both zero."))
         end
         t = d / v0
-        if t < 0
-            throw(DomainError(t, "Target distance is unreachable in future time (requires moving backward)."))
+        # If starting at 0 and moving at constant velocity, we never return to 0 in positive time.
+        if t <= 0
+            throw(DomainError(t, "Target distance is unreachable in positive future time."))
         end
         return Float64(t)
     end
@@ -120,17 +122,22 @@ function time_to_reach_distance(d::Real, v0::Real, a::Real)
     t1 = (-v0 + sqrt_D) / a
     t2 = (-v0 - sqrt_D) / a
     
-    # Filter for non-negative roots
+    # Filter for strictly positive roots to find future arrival/return times.
+    # We use a tiny tolerance (1e-12) to avoid returning t = 0 (the starting point).
     roots = Float64[]
-    if t1 >= 0
+    if t1 > 1e-12
         push!(roots, t1)
     end
-    if t2 >= 0
+    if t2 > 1e-12
         push!(roots, t2)
     end
     
     if isempty(roots)
-        throw(DomainError((t1, t2), "Target distance is unreachable in future time (both roots are negative)."))
+        # If we are already at the target distance, and there is no future return path, return 0.0
+        if d == 0
+            return 0.0
+        end
+        throw(DomainError((t1, t2), "Target distance is unreachable in positive future time."))
     end
     
     return minimum(roots)
