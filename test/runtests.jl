@@ -112,4 +112,31 @@ using Test
         @test_throws DomainError required_launch_speed(9.8, 0.0, 10.0, 20.0, -pi/4)
     end
 
+    @testset "Minimum Valid Angle" begin
+        # Target height at or below initial height -> any angle works -> returns theta_min
+        @test minimum_valid_angle(10.0, 20.0, 10.0, 5.0, 0.2) ≈ 0.2
+        
+        # Standard launch (C = 1/sqrt(2), theta_req = pi/4)
+        # theta_min <= theta_req -> returns theta_req
+        @test minimum_valid_angle(10.0, 20.0, 10.0, 20.0, pi/6) ≈ pi/4
+        
+        # theta_req < theta_min <= pi - theta_req -> returns theta_min
+        @test minimum_valid_angle(10.0, 20.0, 10.0, 20.0, pi/3) ≈ pi/3
+        
+        # Negative gravity magnitude handling
+        @test minimum_valid_angle(-10.0, 20.0, 10.0, 20.0, pi/6) ≈ pi/4
+        
+        # Domain error: target peak height physically unreachable even vertically
+        @test_throws DomainError minimum_valid_angle(10.0, 10.0, 0.0, 100.0, pi/6)
+        
+        # Domain error: speed <= 0 when target is above start
+        @test_throws DomainError minimum_valid_angle(9.8, 0.0, 0.0, 10.0, pi/4)
+        
+        # Domain error: zero gravity
+        @test_throws DomainError minimum_valid_angle(0.0, 20.0, 0.0, 10.0, pi/4)
+        
+        # Domain error: theta_min constraint too large
+        @test_throws DomainError minimum_valid_angle(10.0, 20.0, 10.0, 20.0, 5*pi/6)
+    end
+
 end
