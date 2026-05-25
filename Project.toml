@@ -1,0 +1,15 @@
+name = "BrilliantMechanics"
+uuid = "320a46e2-e51d-46ba-996a-aee27dc41144"
+authors = ["calvinolang <calvinolang@users.noreply.github.com>"]
+version = "0.1.0"
+
+[deps]
+
+[compat]
+julia = "1.6"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

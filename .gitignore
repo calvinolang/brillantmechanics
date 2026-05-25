@@ -1,0 +1,14 @@
+# Julia package manifest
+/Manifest.toml
+
+# Precompilation & compilation artifacts
+*.jl.cov
+*.jl.mem
+*.jl.state
+cov/
+
+# Editor/OS temporary files
+.DS_Store
+.vscode/
+.ipynb_checkpoints/
+.antigravitycli/
